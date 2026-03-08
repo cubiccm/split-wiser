@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1772946878573,
-      "tag": "0000_black_young_avengers",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1772947500571,
-      "tag": "0001_lumpy_darwin",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1772950177989,
-      "tag": "0002_typical_ultragirl",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1772950891905,
-      "tag": "0003_solid_zarek",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1772997233616,
-      "tag": "0004_tense_purple_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1773000029245,
-      "tag": "0005_blue_the_fallen",
+      "when": 1773000805852,
+      "tag": "0000_tan_gideon",
       "breakpoints": true
     }
   ]
