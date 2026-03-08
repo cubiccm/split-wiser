@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, Scale } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -74,7 +74,7 @@ export function BalanceList({
       {balances.map((b) => (
         <div
           key={b.user.id}
-          className="flex items-center justify-between gap-3 rounded-lg border px-4 py-3"
+          className="flex flex-col items-stretch justify-between gap-3 rounded-lg border px-4 py-3 lg:flex-row lg:items-center"
         >
           <div className="min-w-0">
             <p className="truncate text-sm">
@@ -91,11 +91,12 @@ export function BalanceList({
               </p>
             )}
           </div>
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 justify-between gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => onAddExpense(b.user)}
+              className="flex flex-1"
             >
               <PlusIcon className="size-3.5" />
               Expense
@@ -104,7 +105,9 @@ export function BalanceList({
               variant="outline"
               size="sm"
               onClick={() => onSettle(b.user, b.amount)}
+              className="flex flex-1"
             >
+              <Scale className="size-3.5" />
               Settle
             </Button>
           </div>

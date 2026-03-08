@@ -235,27 +235,29 @@ export function ExpenseList({ currentUserId, refreshKey }: ExpenseListProps) {
               {expense.type === "expense" ? null : (
                 <Separator className="mb-3" />
               )}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                   Auto-settlements
                 </span>
-                {expense.autoSettlements.map((as) => (
-                  <div
-                    key={as.id}
-                    className="text-muted-foreground flex items-center gap-1.5 text-xs"
-                  >
-                    <span className="font-medium text-violet-600 dark:text-violet-400">
-                      {as.payers[0]?.user.name ?? "Unknown"}
-                    </span>
-                    <ArrowRight className="size-3 shrink-0" />
-                    <span className="font-medium text-violet-600 dark:text-violet-400">
-                      {as.splits[0]?.user.name ?? "Unknown"}
-                    </span>
-                    <span className="ml-auto shrink-0 tabular-nums">
-                      {formatCurrency(as.amount)}
-                    </span>
-                  </div>
-                ))}
+                <div className="mt-1 space-y-1">
+                  {expense.autoSettlements.map((as) => (
+                    <div
+                      key={as.id}
+                      className="text-muted-foreground flex items-center gap-1.5 text-xs"
+                    >
+                      <span className="font-medium text-violet-600 dark:text-violet-400">
+                        {as.payers[0]?.user.name ?? "Unknown"}
+                      </span>
+                      <ArrowRight className="size-3 shrink-0" />
+                      <span className="font-medium text-violet-600 dark:text-violet-400">
+                        {as.splits[0]?.user.name ?? "Unknown"}
+                      </span>
+                      <span className="ml-auto shrink-0 tabular-nums">
+                        {formatCurrency(as.amount)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           )}
