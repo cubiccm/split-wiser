@@ -151,6 +151,24 @@ export function ExpenseList({ currentUserId, refreshKey }: ExpenseListProps) {
             <div className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
                 <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                  {expense.splits.length === 1 ? "Owed by" : "Split between"}
+                </span>
+                <div className="mt-1 space-y-0.5">
+                  {expense.splits.map((s) => (
+                    <div
+                      key={s.user.id}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <span className="truncate">{s.user.name}</span>
+                      <span className="text-muted-foreground shrink-0 tabular-nums">
+                        {formatCurrency(s.amount)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                   Paid for by
                 </span>
                 <div className="mt-1 space-y-0.5">
@@ -162,24 +180,6 @@ export function ExpenseList({ currentUserId, refreshKey }: ExpenseListProps) {
                       <span className="truncate">{p.user.name}</span>
                       <span className="text-muted-foreground shrink-0 tabular-nums">
                         {formatCurrency(p.amount)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                  Split between
-                </span>
-                <div className="mt-1 space-y-0.5">
-                  {expense.splits.map((s) => (
-                    <div
-                      key={s.user.id}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <span className="truncate">{s.user.name}</span>
-                      <span className="text-muted-foreground shrink-0 tabular-nums">
-                        {formatCurrency(s.amount)}
                       </span>
                     </div>
                   ))}
