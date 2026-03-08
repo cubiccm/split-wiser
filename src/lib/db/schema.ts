@@ -1,6 +1,42 @@
 import { relations } from "drizzle-orm";
 import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const usersRelations = relations(users, ({ many }) => ({
+  credentials: many(passkeyCredentials),
+}));
+
+export const passkeyCredentials = sqliteTable("passkey_credentials", {
+  id: text("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  publicKey: text("public_key").notNull(),
+  counter: integer("counter").notNull().default(0),
+  transports: text("transports"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const passkeyCredentialsRelations = relations(
+  passkeyCredentials,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [passkeyCredentials.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
 export const groups = sqliteTable("groups", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
