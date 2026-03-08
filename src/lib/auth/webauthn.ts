@@ -6,7 +6,6 @@ export function uint8ArrayToBase64Url(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString("base64url");
 }
 
-export function base64UrlToUint8Array(base64url: string): Uint8Array {
-  const buf = Buffer.from(base64url, "base64url");
-  return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+export function base64UrlToUint8Array(base64url: string) {
+  return new Uint8Array(Buffer.from(base64url, "base64url"));
 }
