@@ -1,0 +1,1 @@
+ALTER TABLE `expenses` ADD `origin_expense_id` integer REFERENCES expenses(id);

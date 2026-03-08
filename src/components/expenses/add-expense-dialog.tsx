@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +26,9 @@ interface User {
 interface AddExpenseDialogProps {
   currentUser: User;
   onCreated: () => void;
+  initialParticipants?: User[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 function buildEntries(
@@ -79,8 +83,23 @@ function validateCustomTotal(
 export function AddExpenseDialog({
   currentUser,
   onCreated,
+  initialParticipants,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: AddExpenseDialogProps) {
-  const [open, setOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const dialogOpen = isControlled ? controlledOpen : internalOpen;
+  const prevDialogOpen = useRef(false);
+
+  const setDialogOpen = useCallback(
+    (next: boolean) => {
+      if (isControlled) controlledOnOpenChange?.(next);
+      else setInternalOpen(next);
+    },
+    [isControlled, controlledOnOpenChange],
+  );
+
   const [description, setDescription] = useState("");
   const [cents, setCents] = useState(0);
 
@@ -122,6 +141,16 @@ export function AddExpenseDialog({
     setError("");
     setFieldErrors({});
   }, []);
+
+  useEffect(() => {
+    if (dialogOpen && !prevDialogOpen.current) {
+      reset();
+      if (initialParticipants?.length) {
+        setParticipants(initialParticipants);
+      }
+    }
+    prevDialogOpen.current = dialogOpen;
+  }, [dialogOpen, reset, initialParticipants]);
 
   function pruneAmounts(
     users: User[],
@@ -195,13 +224,17 @@ export function AddExpenseDialog({
         }),
       });
 
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         setError(data.error ?? "Failed to create expense");
         return;
       }
 
-      setOpen(false);
+      if (data.autoSettlements > 0) {
+        toast.info("Debt cycle detected and auto-settled");
+      }
+
+      setDialogOpen(false);
       reset();
       onCreated();
     } finally {
@@ -210,17 +243,13 @@ export function AddExpenseDialog({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        setOpen(nextOpen);
-        if (nextOpen) reset();
-      }}
-    >
-      <DialogTrigger render={<Button size="lg" />}>
-        <Plus className="size-4" />
-        Add Expense
-      </DialogTrigger>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {!isControlled && (
+        <DialogTrigger render={<Button size="lg" />}>
+          <Plus className="size-4" />
+          Add Expense
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
@@ -287,14 +316,13 @@ export function AddExpenseDialog({
                 className="h-20 border-0 text-center text-5xl! font-semibold focus-visible:ring-0"
               />
               {fieldErrors.amount && (
-                <p className="text-destructive text-xs">
-                  {fieldErrors.amount}
-                </p>
+                <p className="text-destructive text-xs">{fieldErrors.amount}</p>
               )}
             </div>
 
             <UserSelect
               label="Split between"
+              currentUser={currentUser}
               selected={participants}
               suggestedUsers={payers}
               onSelect={(users) => {
@@ -321,6 +349,7 @@ export function AddExpenseDialog({
 
             <UserSelect
               label="Paid for by"
+              currentUser={currentUser}
               selected={payers}
               suggestedUsers={participants}
               onSelect={(users) => {
@@ -343,9 +372,7 @@ export function AddExpenseDialog({
               splitError={fieldErrors.payersSplit}
             />
 
-            {error && (
-              <p className="text-destructive text-sm">{error}</p>
-            )}
+            {error && <p className="text-destructive text-sm">{error}</p>}
           </div>
 
           <DialogFooter className="mt-4">

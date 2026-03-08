@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ArrowRight } from "lucide-react";
 
 import {
   Card,
@@ -23,14 +24,35 @@ interface ExpenseEntry {
   amount: number;
 }
 
-interface Expense {
+interface DebtEntry {
+  fromUser: User;
+  toUser: User;
+  amount: number;
+}
+
+interface AutoSettlement {
   id: number;
   description: string;
   amount: number;
+  type: "auto_settlement";
   createdBy: User;
   createdAt: string;
   payers: ExpenseEntry[];
   splits: ExpenseEntry[];
+  debts: DebtEntry[];
+}
+
+interface Expense {
+  id: number;
+  description: string;
+  amount: number;
+  type: "expense" | "settlement" | "auto_settlement";
+  createdBy: User;
+  createdAt: string;
+  payers: ExpenseEntry[];
+  splits: ExpenseEntry[];
+  debts: DebtEntry[];
+  autoSettlements: AutoSettlement[];
 }
 
 interface ExpenseListProps {
@@ -67,27 +89,33 @@ function NetSummary({
   expense: Expense;
   currentUserId: number;
 }) {
-  const paidAmount =
-    expense.payers.find((p) => p.user.id === currentUserId)?.amount ?? 0;
-  const owedAmount =
-    expense.splits.find((s) => s.user.id === currentUserId)?.amount ?? 0;
-  const net = paidAmount - owedAmount;
+  const youOwe = expense.debts.filter((d) => d.fromUser.id === currentUserId);
+  const owedToYou = expense.debts.filter((d) => d.toUser.id === currentUserId);
 
-  if (net > 0) {
-    return (
-      <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-        You lent {formatCurrency(net)}
-      </span>
-    );
+  if (youOwe.length === 0 && owedToYou.length === 0) {
+    return null;
   }
-  if (net < 0) {
-    return (
-      <span className="text-sm font-medium text-orange-600 dark:text-orange-400">
-        You owe {formatCurrency(Math.abs(net))}
-      </span>
-    );
-  }
-  return <span className="text-muted-foreground text-sm">Settled</span>;
+
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      {owedToYou.map((d) => (
+        <span
+          key={d.fromUser.id}
+          className="text-sm font-medium text-emerald-600 dark:text-emerald-400"
+        >
+          You lent {d.fromUser.name} {formatCurrency(d.amount)}
+        </span>
+      ))}
+      {youOwe.map((d) => (
+        <span
+          key={d.toUser.id}
+          className="text-sm font-medium text-orange-600 dark:text-orange-400"
+        >
+          You owe {d.toUser.name} {formatCurrency(d.amount)}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 export function ExpenseList({ currentUserId, refreshKey }: ExpenseListProps) {
@@ -130,63 +158,107 @@ export function ExpenseList({ currentUserId, refreshKey }: ExpenseListProps) {
     <div className="space-y-3">
       {expenses.map((expense) => (
         <Card key={expense.id}>
-          <CardHeader className="pb-2">
+          <CardHeader>
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <CardTitle className="truncate text-base">
-                  {expense.description}
-                </CardTitle>
-                <CardDescription>{timeAgo(expense.createdAt)}</CardDescription>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="truncate text-base">
+                    {expense.description}
+                  </CardTitle>
+                  {expense.type === "settlement" && (
+                    <Badge variant="secondary" className="shrink-0 text-xs">
+                      Settlement
+                    </Badge>
+                  )}
+                </div>
+                <CardDescription>
+                  {expense.createdBy.name} &middot; {timeAgo(expense.createdAt)}
+                </CardDescription>
               </div>
               <div className="flex flex-col items-end gap-1">
                 <span className="text-base font-semibold">
                   {formatCurrency(expense.amount)}
                 </span>
-                <NetSummary expense={expense} currentUserId={currentUserId} />
+                {expense.type === "expense" && (
+                  <NetSummary expense={expense} currentUserId={currentUserId} />
+                )}
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <Separator className="mb-3" />
-            <div className="grid gap-4 text-sm sm:grid-cols-2">
-              <div>
-                <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                  {expense.splits.length === 1 ? "Owed by" : "Split between"}
-                </span>
-                <div className="mt-1 space-y-0.5">
-                  {expense.splits.map((s) => (
-                    <div
-                      key={s.user.id}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <span className="truncate">{s.user.name}</span>
-                      <span className="text-muted-foreground shrink-0 tabular-nums">
-                        {formatCurrency(s.amount)}
-                      </span>
-                    </div>
-                  ))}
+
+          {expense.type === "expense" && (
+            <CardContent>
+              <Separator className="mb-3" />
+              <div className="grid gap-4 text-sm sm:grid-cols-2">
+                <div>
+                  <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                    {expense.splits.length === 1 ? "Owed by" : "Split between"}
+                  </span>
+                  <div className="mt-1 space-y-0.5">
+                    {expense.splits.map((s) => (
+                      <div
+                        key={s.user.id}
+                        className="flex items-center justify-between gap-2"
+                      >
+                        <span className="truncate">{s.user.name}</span>
+                        <span className="text-muted-foreground shrink-0 tabular-nums">
+                          {formatCurrency(s.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                    Paid for by
+                  </span>
+                  <div className="mt-1 space-y-0.5">
+                    {expense.payers.map((p) => (
+                      <div
+                        key={p.user.id}
+                        className="flex items-center justify-between gap-2"
+                      >
+                        <span className="truncate">{p.user.name}</span>
+                        <span className="text-muted-foreground shrink-0 tabular-nums">
+                          {formatCurrency(p.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div>
+            </CardContent>
+          )}
+
+          {expense.autoSettlements.length > 0 && (
+            <CardContent>
+              {expense.type === "expense" ? null : (
+                <Separator className="mb-3" />
+              )}
+              <div className="space-y-1.5">
                 <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                  Paid for by
+                  Auto-settlements
                 </span>
-                <div className="mt-1 space-y-0.5">
-                  {expense.payers.map((p) => (
-                    <div
-                      key={p.user.id}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <span className="truncate">{p.user.name}</span>
-                      <span className="text-muted-foreground shrink-0 tabular-nums">
-                        {formatCurrency(p.amount)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                {expense.autoSettlements.map((as) => (
+                  <div
+                    key={as.id}
+                    className="text-muted-foreground flex items-center gap-1.5 text-xs"
+                  >
+                    <span className="font-medium text-violet-600 dark:text-violet-400">
+                      {as.payers[0]?.user.name ?? "Unknown"}
+                    </span>
+                    <ArrowRight className="size-3 shrink-0" />
+                    <span className="font-medium text-violet-600 dark:text-violet-400">
+                      {as.splits[0]?.user.name ?? "Unknown"}
+                    </span>
+                    <span className="ml-auto shrink-0 tabular-nums">
+                      {formatCurrency(as.amount)}
+                    </span>
+                  </div>
+                ))}
               </div>
-            </div>
-          </CardContent>
+            </CardContent>
+          )}
         </Card>
       ))}
     </div>

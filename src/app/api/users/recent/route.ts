@@ -2,12 +2,7 @@ import { NextResponse } from "next/server";
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import {
-  expensePayers,
-  expenses,
-  expenseSplits,
-  users,
-} from "@/lib/db/schema";
+import { expensePayers, expenses, expenseSplits, users } from "@/lib/db/schema";
 import { getSession } from "@/lib/auth/session";
 
 export async function GET() {

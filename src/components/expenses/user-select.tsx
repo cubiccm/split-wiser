@@ -33,6 +33,7 @@ interface UserSelectProps {
   selected: User[];
   onSelect: (users: User[]) => void;
   label: string;
+  currentUser?: User;
   excludeIds?: number[];
   suggestedUsers?: User[];
   totalCents?: number;
@@ -68,7 +69,8 @@ function distributeProportionally(
     };
   });
 
-  let remaining = individualTarget - entries.reduce((sum, e) => sum + e.floor, 0);
+  let remaining =
+    individualTarget - entries.reduce((sum, e) => sum + e.floor, 0);
   entries.sort((a, b) => b.remainder - a.remainder);
   for (const entry of entries) {
     if (remaining <= 0) break;
@@ -126,6 +128,7 @@ export function UserSelect({
   selected,
   onSelect,
   label,
+  currentUser,
   excludeIds = [],
   suggestedUsers = [],
   totalCents,
@@ -163,24 +166,24 @@ export function UserSelect({
     };
   }, []);
 
-  const crossFieldFiltered = useMemo(() => {
+  const suggestionItems = useMemo(() => {
     const excludeSet = new Set([...excludeIds, ...selected.map((u) => u.id)]);
-    return suggestedUsers.filter((u) => !excludeSet.has(u.id));
-  }, [suggestedUsers, excludeIds, selected]);
+    const seen = new Set<number>();
+    const items: User[] = [];
 
-  const recentFiltered = useMemo(() => {
-    const excludeSet = new Set([
-      ...excludeIds,
-      ...selected.map((u) => u.id),
-      ...suggestedUsers.map((u) => u.id),
-    ]);
-    return recentUsers.filter((u) => !excludeSet.has(u.id));
-  }, [recentUsers, suggestedUsers, excludeIds, selected]);
+    const add = (user: User) => {
+      if (!excludeSet.has(user.id) && !seen.has(user.id)) {
+        seen.add(user.id);
+        items.push(user);
+      }
+    };
 
-  const suggestionItems = useMemo(
-    () => [...crossFieldFiltered, ...recentFiltered],
-    [crossFieldFiltered, recentFiltered],
-  );
+    if (currentUser) add(currentUser);
+    suggestedUsers.forEach(add);
+    recentUsers.forEach(add);
+
+    return items;
+  }, [currentUser, suggestedUsers, recentUsers, excludeIds, selected]);
 
   const hasSuggestions = suggestionItems.length > 0;
   const displayItems = hasQuery ? results : suggestionItems;
@@ -278,40 +281,19 @@ export function UserSelect({
             </ComboboxEmpty>
             {showSuggestions && !hasQuery ? (
               <ComboboxList>
-                {crossFieldFiltered.length > 0 && (
-                  <ComboboxGroup>
-                    <ComboboxLabel>From this expense</ComboboxLabel>
-                    {crossFieldFiltered.map((user) => (
-                      <ComboboxItem key={user.id} value={user}>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium">
-                            {user.name}
-                          </span>
-                          <span className="text-muted-foreground text-xs">
-                            {user.email}
-                          </span>
-                        </div>
-                      </ComboboxItem>
-                    ))}
-                  </ComboboxGroup>
-                )}
-                {recentFiltered.length > 0 && (
-                  <ComboboxGroup>
-                    <ComboboxLabel>Recent</ComboboxLabel>
-                    {recentFiltered.map((user) => (
-                      <ComboboxItem key={user.id} value={user}>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium">
-                            {user.name}
-                          </span>
-                          <span className="text-muted-foreground text-xs">
-                            {user.email}
-                          </span>
-                        </div>
-                      </ComboboxItem>
-                    ))}
-                  </ComboboxGroup>
-                )}
+                <ComboboxGroup>
+                  <ComboboxLabel>Suggested</ComboboxLabel>
+                  {suggestionItems.map((user) => (
+                    <ComboboxItem key={user.id} value={user}>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{user.name}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {user.email}
+                        </span>
+                      </div>
+                    </ComboboxItem>
+                  ))}
+                </ComboboxGroup>
               </ComboboxList>
             ) : (
               <ComboboxList>
@@ -329,9 +311,7 @@ export function UserSelect({
             )}
           </ComboboxContent>
         </Combobox>
-        {error && (
-          <p className="text-destructive text-xs">{error}</p>
-        )}
+        {error && <p className="text-destructive text-xs">{error}</p>}
       </div>
 
       {showSplitUI && (

@@ -24,18 +24,32 @@ A web app for splitting expenses between friends. Users create groups, add expen
 
 ```
 src/
-  app/           # Next.js App Router pages and layouts
-  components/    # Reusable React components
-    ui/          # shadcn/ui components (do not edit directly unless customizing)
-  lib/           # Utility functions, helpers, and shared logic
-    db/          # Database connection and schema
-      index.ts   # Drizzle client (import as `@/lib/db`)
-      schema.ts  # Table definitions
-  hooks/         # Custom React hooks
-  types/         # Shared TypeScript type definitions
-drizzle/         # Auto-generated SQL migrations (commit these)
+  app/                # Next.js App Router pages and layouts
+  components/         # Reusable React components
+    ui/               # shadcn/ui components (do not edit directly unless customizing)
+    expenses/         # Expense-related components (add, list, settle-up)
+    balances/         # Balance summary components
+  lib/                # Utility functions, helpers, and shared logic
+    db/               # Database connection and schema
+      index.ts        # Drizzle client (import as `@/lib/db`)
+      schema.ts       # Table definitions
+    debts.ts          # computeDebts() — resolves payers/splits into minimal transfers
+    cycle-settlement.ts # settleCycles() — detects debt-graph cycles and auto-settles them
+  hooks/              # Custom React hooks
+  types/              # Shared TypeScript type definitions
+scripts/              # One-off utility scripts (e.g. backfill-debts.ts)
+drizzle/              # Auto-generated SQL migrations (commit these)
 drizzle.config.ts
 ```
+
+## Database Tables
+
+- **users** — user accounts
+- **passkey_credentials** — WebAuthn passkey auth
+- **expenses** — expense/settlement header (has `type`: `expense` | `settlement` | `auto_settlement`; `auto_settlement` rows have `origin_expense_id` linking to the expense that triggered them)
+- **expense_payers** — who paid how much per expense
+- **expense_splits** — who owes how much per expense
+- **expense_debts** — resolved "who owes whom" per expense (`from_user_id` → `to_user_id`, `amount`), computed at creation time via `computeDebts()`
 
 ## Conventions
 

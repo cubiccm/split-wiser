@@ -1,5 +1,11 @@
 import { relations } from "drizzle-orm";
-import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  type AnySQLiteColumn,
+  integer,
+  real,
+  sqliteTable,
+  text,
+} from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -46,6 +52,13 @@ export const expenses = sqliteTable("expenses", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   description: text("description").notNull(),
   amount: real("amount").notNull(),
+  type: text("type", { enum: ["expense", "settlement", "auto_settlement"] })
+    .notNull()
+    .default("expense"),
+  originExpenseId: integer("origin_expense_id").references(
+    (): AnySQLiteColumn => expenses.id,
+    { onDelete: "cascade" },
+  ),
   createdById: integer("created_by_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -59,8 +72,15 @@ export const expensesRelations = relations(expenses, ({ one, many }) => ({
     fields: [expenses.createdById],
     references: [users.id],
   }),
+  originExpense: one(expenses, {
+    fields: [expenses.originExpenseId],
+    references: [expenses.id],
+    relationName: "autoSettlements",
+  }),
+  autoSettlements: many(expenses, { relationName: "autoSettlements" }),
   payers: many(expensePayers),
   splits: many(expenseSplits),
+  debts: many(expenseDebts),
 }));
 
 export const expensePayers = sqliteTable("expense_payers", {
@@ -104,5 +124,38 @@ export const expenseSplitsRelations = relations(expenseSplits, ({ one }) => ({
   user: one(users, {
     fields: [expenseSplits.userId],
     references: [users.id],
+  }),
+}));
+
+// ── Expense Debts (resolved "who owes whom" per expense) ─────────────
+
+export const expenseDebts = sqliteTable("expense_debts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  expenseId: integer("expense_id")
+    .notNull()
+    .references(() => expenses.id, { onDelete: "cascade" }),
+  fromUserId: integer("from_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  toUserId: integer("to_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  amount: real("amount").notNull(),
+});
+
+export const expenseDebtsRelations = relations(expenseDebts, ({ one }) => ({
+  expense: one(expenses, {
+    fields: [expenseDebts.expenseId],
+    references: [expenses.id],
+  }),
+  fromUser: one(users, {
+    fields: [expenseDebts.fromUserId],
+    references: [users.id],
+    relationName: "debtsOwed",
+  }),
+  toUser: one(users, {
+    fields: [expenseDebts.toUserId],
+    references: [users.id],
+    relationName: "debtsOwedTo",
   }),
 }));

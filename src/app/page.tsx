@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { AuthCard } from "@/components/auth/auth-card";
+import { BalanceList } from "@/components/balances/balance-list";
 import { BouncingTitle } from "@/components/bouncing-title";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
+import { SettleUpDialog } from "@/components/expenses/settle-up-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +27,15 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const [settleOpen, setSettleOpen] = useState(false);
+  const [settleCounterpart, setSettleCounterpart] = useState<User | null>(null);
+  const [settleBalance, setSettleBalance] = useState(0);
+
+  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
+  const [expenseCounterpart, setExpenseCounterpart] = useState<User | null>(
+    null,
+  );
+
   useEffect(() => {
     fetch("/api/auth/me")
       .then((res) => (res.ok ? res.json() : null))
@@ -36,6 +47,19 @@ export default function Home() {
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
   }, []);
+
+  const handleSettle = useCallback((counterpart: User, balance: number) => {
+    setSettleCounterpart(counterpart);
+    setSettleBalance(balance);
+    setSettleOpen(true);
+  }, []);
+
+  const handleAddExpense = useCallback((counterpart: User) => {
+    setExpenseCounterpart(counterpart);
+    setExpenseDialogOpen(true);
+  }, []);
+
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   if (loading) {
     return (
@@ -78,17 +102,46 @@ export default function Home() {
         </DropdownMenu>
       </header>
 
+      <div className="mt-6">
+        <h2 className="text-lg font-medium">Balances</h2>
+        <div className="mt-2">
+          <BalanceList
+            refreshKey={refreshKey}
+            onSettle={handleSettle}
+            onAddExpense={handleAddExpense}
+          />
+        </div>
+      </div>
+
       <div className="mt-6 flex items-center justify-between gap-4">
         <h2 className="text-lg font-medium">Activities</h2>
-        <AddExpenseDialog
-          currentUser={user}
-          onCreated={() => setRefreshKey((k) => k + 1)}
-        />
+        <AddExpenseDialog currentUser={user} onCreated={refresh} />
       </div>
 
       <div className="mt-4">
         <ExpenseList currentUserId={user.id} refreshKey={refreshKey} />
       </div>
+
+      {settleCounterpart && (
+        <SettleUpDialog
+          open={settleOpen}
+          onOpenChange={setSettleOpen}
+          currentUser={user}
+          counterpart={settleCounterpart}
+          balance={settleBalance}
+          onSettled={refresh}
+        />
+      )}
+
+      {expenseCounterpart && (
+        <AddExpenseDialog
+          currentUser={user}
+          onCreated={refresh}
+          open={expenseDialogOpen}
+          onOpenChange={setExpenseDialogOpen}
+          initialParticipants={[user, expenseCounterpart]}
+        />
+      )}
     </div>
   );
 }
