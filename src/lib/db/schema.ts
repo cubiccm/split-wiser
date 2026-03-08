@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
 import {
-  type AnySQLiteColumn,
   integer,
   real,
   sqliteTable,
@@ -55,10 +54,6 @@ export const expenses = sqliteTable("expenses", {
   type: text("type", { enum: ["expense", "settlement", "auto_settlement"] })
     .notNull()
     .default("expense"),
-  originExpenseId: integer("origin_expense_id").references(
-    (): AnySQLiteColumn => expenses.id,
-    { onDelete: "cascade" },
-  ),
   createdById: integer("created_by_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -72,12 +67,6 @@ export const expensesRelations = relations(expenses, ({ one, many }) => ({
     fields: [expenses.createdById],
     references: [users.id],
   }),
-  originExpense: one(expenses, {
-    fields: [expenses.originExpenseId],
-    references: [expenses.id],
-    relationName: "autoSettlements",
-  }),
-  autoSettlements: many(expenses, { relationName: "autoSettlements" }),
   payers: many(expensePayers),
   splits: many(expenseSplits),
   debts: many(expenseDebts),

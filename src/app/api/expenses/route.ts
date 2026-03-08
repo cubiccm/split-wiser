@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, inArray, desc, ne, and } from "drizzle-orm";
+import { eq, inArray, desc } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -47,36 +47,8 @@ export async function GET() {
   const expenseRows = await db
     .select()
     .from(expenses)
-    .where(
-      and(
-        inArray(expenses.id, expenseIds),
-        ne(expenses.type, "auto_settlement"),
-      ),
-    )
+    .where(inArray(expenses.id, expenseIds))
     .orderBy(desc(expenses.createdAt));
-
-  const topLevelIds = expenseRows.map((e) => e.id);
-
-  const autoSettlementRows =
-    topLevelIds.length > 0
-      ? await db
-          .select()
-          .from(expenses)
-          .where(
-            and(
-              eq(expenses.type, "auto_settlement"),
-              inArray(expenses.originExpenseId, topLevelIds),
-            ),
-          )
-      : [];
-
-  const autoByOrigin = new Map<number, typeof autoSettlementRows>();
-  for (const as of autoSettlementRows) {
-    if (!as.originExpenseId) continue;
-    const list = autoByOrigin.get(as.originExpenseId) ?? [];
-    list.push(as);
-    autoByOrigin.set(as.originExpenseId, list);
-  }
 
   async function hydrateExpense(expense: (typeof expenseRows)[number]) {
     const payers = await db
@@ -161,43 +133,7 @@ export async function GET() {
   const result = await Promise.all(
     expenseRows.map(async (expense) => {
       const hydrated = await hydrateExpense(expense);
-
-      const childRows = autoByOrigin.get(expense.id) ?? [];
-      const visibleChildren: typeof childRows = [];
-      for (const child of childRows) {
-        const [payerMatch] = await db
-          .select({ id: expensePayers.id })
-          .from(expensePayers)
-          .where(
-            and(
-              eq(expensePayers.expenseId, child.id),
-              eq(expensePayers.userId, userId),
-            ),
-          );
-        if (payerMatch) {
-          visibleChildren.push(child);
-          continue;
-        }
-        const [splitMatch] = await db
-          .select({ id: expenseSplits.id })
-          .from(expenseSplits)
-          .where(
-            and(
-              eq(expenseSplits.expenseId, child.id),
-              eq(expenseSplits.userId, userId),
-            ),
-          );
-        if (splitMatch) {
-          visibleChildren.push(child);
-        }
-      }
-
-      return {
-        ...hydrated,
-        autoSettlements: await Promise.all(
-          visibleChildren.map(hydrateExpense),
-        ),
-      };
+      return hydrated;
     }),
   );
 
@@ -287,6 +223,7 @@ export async function POST(request: NextRequest) {
 
   const debts = computeDebts(payers, splits);
 
+  let autoSettlements = 0;
   const result = await db.transaction(async (tx) => {
     const [inserted] = await tx
       .insert(expenses)
@@ -323,10 +260,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    autoSettlements = await settleCycles(tx, session.userId!);
+
     return inserted;
   });
-
-  const autoSettlements = await settleCycles(session.userId!, result.id);
 
   return NextResponse.json(
     { expense: result, autoSettlements },

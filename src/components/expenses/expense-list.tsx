@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowRight } from "lucide-react";
 
 import {
   Card,
@@ -30,18 +29,6 @@ interface DebtEntry {
   amount: number;
 }
 
-interface AutoSettlement {
-  id: number;
-  description: string;
-  amount: number;
-  type: "auto_settlement";
-  createdBy: User;
-  createdAt: string;
-  payers: ExpenseEntry[];
-  splits: ExpenseEntry[];
-  debts: DebtEntry[];
-}
-
 interface Expense {
   id: number;
   description: string;
@@ -52,7 +39,6 @@ interface Expense {
   payers: ExpenseEntry[];
   splits: ExpenseEntry[];
   debts: DebtEntry[];
-  autoSettlements: AutoSettlement[];
 }
 
 interface ExpenseListProps {
@@ -170,6 +156,11 @@ export function ExpenseList({ currentUserId, refreshKey }: ExpenseListProps) {
                       Settlement
                     </Badge>
                   )}
+                  {expense.type === "auto_settlement" && (
+                    <Badge variant="outline" className="shrink-0 text-xs text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800">
+                      Auto-settlement
+                    </Badge>
+                  )}
                 </div>
                 <CardDescription>
                   {expense.createdBy.name} &middot; {timeAgo(expense.createdAt)}
@@ -225,38 +216,6 @@ export function ExpenseList({ currentUserId, refreshKey }: ExpenseListProps) {
                       </div>
                     ))}
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          )}
-
-          {expense.autoSettlements.length > 0 && (
-            <CardContent>
-              {expense.type === "expense" ? null : (
-                <Separator className="mb-3" />
-              )}
-              <div className="space-y-2">
-                <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                  Auto-settlements
-                </span>
-                <div className="mt-1 space-y-1">
-                  {expense.autoSettlements.map((as) => (
-                    <div
-                      key={as.id}
-                      className="text-muted-foreground flex items-center gap-1.5 text-xs"
-                    >
-                      <span className="font-medium text-violet-600 dark:text-violet-400">
-                        {as.payers[0]?.user.name ?? "Unknown"}
-                      </span>
-                      <ArrowRight className="size-3 shrink-0" />
-                      <span className="font-medium text-violet-600 dark:text-violet-400">
-                        {as.splits[0]?.user.name ?? "Unknown"}
-                      </span>
-                      <span className="ml-auto shrink-0 tabular-nums">
-                        {formatCurrency(as.amount)}
-                      </span>
-                    </div>
-                  ))}
                 </div>
               </div>
             </CardContent>

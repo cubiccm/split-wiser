@@ -11,13 +11,16 @@ import {
 
 type Graph = Map<number, Map<number, number>>;
 
+// Drizzle transaction type
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /**
  * Build a global net-debt directed graph from all expense_debts rows.
  * graph.get(A)?.get(B) = net amount A owes B (only positive values stored).
  * Opposite directions are netted out so no 2-node cycles can exist.
  */
-async function buildNetDebtGraph(): Promise<Graph> {
-  const rows = await db
+async function buildNetDebtGraph(tx: Tx): Promise<Graph> {
+  const rows = await tx
     .select({
       fromUserId: expenseDebts.fromUserId,
       toUserId: expenseDebts.toUserId,
@@ -118,14 +121,14 @@ function findCycle(graph: Graph): number[] | null {
  * from every edge by inserting reverse debt entries as settlement expenses.
  */
 export async function settleCycles(
+  tx: Tx,
   createdById: number,
-  originExpenseId: number,
 ): Promise<number> {
   const MAX_ITERATIONS = 100;
   let totalRecords = 0;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
-    const graph = await buildNetDebtGraph();
+    const graph = await buildNetDebtGraph(tx);
     const cycle = findCycle(graph);
     if (!cycle) break;
 
@@ -139,50 +142,47 @@ export async function settleCycles(
     bottleneck = Math.round(bottleneck * 100) / 100;
     if (bottleneck <= 0) break;
 
-    const nameRows = await db
+    const nameRows = await tx
       .select({ id: users.id, name: users.name })
       .from(users)
       .where(inArray(users.id, cycle));
     const nameMap = new Map(nameRows.map((u) => [u.id, u.name]));
 
-    await db.transaction(async (tx) => {
-      for (let j = 0; j < cycle.length; j++) {
-        const from = cycle[j];
-        const to = cycle[(j + 1) % cycle.length];
-        const fromName = nameMap.get(from) ?? "Unknown";
-        const toName = nameMap.get(to) ?? "Unknown";
+    for (let j = 0; j < cycle.length; j++) {
+      const from = cycle[j];
+      const to = cycle[(j + 1) % cycle.length];
+      const fromName = nameMap.get(from) ?? "Unknown";
+      const toName = nameMap.get(to) ?? "Unknown";
 
-        const [inserted] = await tx
-          .insert(expenses)
-          .values({
-            description: `Auto-settlement: ${fromName} paid ${toName}`,
-            amount: bottleneck,
-            type: "auto_settlement",
-            originExpenseId,
-            createdById,
-          })
-          .returning();
-
-        await tx.insert(expensePayers).values({
-          expenseId: inserted.id,
-          userId: from,
+      const [inserted] = await tx
+        .insert(expenses)
+        .values({
+          description: `Auto-settlement: ${fromName} paid ${toName}`,
           amount: bottleneck,
-        });
+          type: "auto_settlement",
+          createdById,
+        })
+        .returning();
 
-        await tx.insert(expenseSplits).values({
-          expenseId: inserted.id,
-          userId: to,
-          amount: bottleneck,
-        });
+      await tx.insert(expensePayers).values({
+        expenseId: inserted.id,
+        userId: from,
+        amount: bottleneck,
+      });
 
-        await tx.insert(expenseDebts).values({
-          expenseId: inserted.id,
-          fromUserId: to,
-          toUserId: from,
-          amount: bottleneck,
-        });
-      }
-    });
+      await tx.insert(expenseSplits).values({
+        expenseId: inserted.id,
+        userId: to,
+        amount: bottleneck,
+      });
+
+      await tx.insert(expenseDebts).values({
+        expenseId: inserted.id,
+        fromUserId: to,
+        toUserId: from,
+        amount: bottleneck,
+      });
+    }
 
     totalRecords += cycle.length;
   }

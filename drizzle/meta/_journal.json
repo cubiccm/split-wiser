@@ -8,6 +8,13 @@
       "when": 1773000805852,
       "tag": "0000_tan_gideon",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1773011155335,
+      "tag": "0001_romantic_pandemic",
+      "breakpoints": true
     }
   ]
 }
