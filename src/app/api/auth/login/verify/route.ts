@@ -19,11 +19,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const credential = db
+  const [credential] = await db
     .select()
     .from(passkeyCredentials)
-    .where(eq(passkeyCredentials.id, body.id))
-    .get();
+    .where(eq(passkeyCredentials.id, body.id));
 
   if (!credential) {
     return NextResponse.json(
@@ -63,16 +62,15 @@ export async function POST(request: Request) {
     );
   }
 
-  db.update(passkeyCredentials)
+  await db
+    .update(passkeyCredentials)
     .set({ counter: verification.authenticationInfo.newCounter })
-    .where(eq(passkeyCredentials.id, credential.id))
-    .run();
+    .where(eq(passkeyCredentials.id, credential.id));
 
-  const user = db
+  const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.id, credential.userId))
-    .get();
+    .where(eq(users.id, credential.userId));
 
   session.userId = user!.id;
   session.email = user!.email;

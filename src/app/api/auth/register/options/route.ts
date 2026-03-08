@@ -20,11 +20,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const existing = db
+  const [existing] = await db
     .select()
     .from(users)
-    .where(eq(users.email, email.toLowerCase()))
-    .get();
+    .where(eq(users.email, email.toLowerCase()));
 
   if (existing) {
     return NextResponse.json(

@@ -16,11 +16,10 @@ export async function POST(request: Request) {
     | undefined;
 
   if (email?.trim()) {
-    const user = db
+    const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.email, email.toLowerCase()))
-      .get();
+      .where(eq(users.email, email.toLowerCase()));
 
     if (!user) {
       return NextResponse.json(
@@ -29,11 +28,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const credentials = db
+    const credentials = await db
       .select()
       .from(passkeyCredentials)
-      .where(eq(passkeyCredentials.userId, user.id))
-      .all();
+      .where(eq(passkeyCredentials.userId, user.id));
 
     allowCredentials = credentials.map((cred) => ({
       id: cred.id,

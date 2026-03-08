@@ -40,26 +40,23 @@ export async function POST(request: Request) {
 
   const { credential } = verification.registrationInfo;
 
-  const user = db
+  const [user] = await db
     .insert(users)
     .values({
       name: session.registrationName!,
       email: session.registrationEmail,
     })
-    .returning()
-    .get();
+    .returning();
 
-  db.insert(passkeyCredentials)
-    .values({
-      id: credential.id,
-      userId: user.id,
-      publicKey: uint8ArrayToBase64Url(credential.publicKey),
-      counter: credential.counter,
-      transports: credential.transports
-        ? JSON.stringify(credential.transports)
-        : null,
-    })
-    .run();
+  await db.insert(passkeyCredentials).values({
+    id: credential.id,
+    userId: user.id,
+    publicKey: uint8ArrayToBase64Url(credential.publicKey),
+    counter: credential.counter,
+    transports: credential.transports
+      ? JSON.stringify(credential.transports)
+      : null,
+  });
 
   session.userId = user.id;
   session.email = user.email;

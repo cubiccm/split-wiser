@@ -13,7 +13,7 @@ export async function GET() {
 
   const userId = session.userId;
 
-  const rows = db
+  const rows = await db
     .select({
       fromUserId: expenseDebts.fromUserId,
       toUserId: expenseDebts.toUserId,
@@ -25,8 +25,7 @@ export async function GET() {
         eq(expenseDebts.fromUserId, userId),
         eq(expenseDebts.toUserId, userId),
       ),
-    )
-    .all();
+    );
 
   const netByCounterpart = new Map<number, number>();
 
@@ -53,11 +52,10 @@ export async function GET() {
     return NextResponse.json({ balances: [] });
   }
 
-  const counterpartUsers = db
+  const counterpartUsers = await db
     .select({ id: users.id, name: users.name, email: users.email })
     .from(users)
-    .where(inArray(users.id, counterpartIds))
-    .all();
+    .where(inArray(users.id, counterpartIds));
 
   const userMap = new Map(counterpartUsers.map((u) => [u.id, u]));
 

@@ -16,12 +16,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ users: [] });
   }
 
-  const results = db
+  const results = await db
     .select({ id: users.id, name: users.name, email: users.email })
     .from(users)
     .where(or(like(users.name, `%${q}%`), like(users.email, `%${q}%`)))
-    .limit(10)
-    .all();
+    .limit(10);
 
   return NextResponse.json({ users: results });
 }

@@ -24,19 +24,19 @@ export async function GET() {
 
   const userId = session.userId;
 
-  const payerExpenseIds = db
-    .select({ id: expensePayers.expenseId })
-    .from(expensePayers)
-    .where(eq(expensePayers.userId, userId))
-    .all()
-    .map((r) => r.id);
+  const payerExpenseIds = (
+    await db
+      .select({ id: expensePayers.expenseId })
+      .from(expensePayers)
+      .where(eq(expensePayers.userId, userId))
+  ).map((r) => r.id);
 
-  const splitExpenseIds = db
-    .select({ id: expenseSplits.expenseId })
-    .from(expenseSplits)
-    .where(eq(expenseSplits.userId, userId))
-    .all()
-    .map((r) => r.id);
+  const splitExpenseIds = (
+    await db
+      .select({ id: expenseSplits.expenseId })
+      .from(expenseSplits)
+      .where(eq(expenseSplits.userId, userId))
+  ).map((r) => r.id);
 
   const expenseIds = [...new Set([...payerExpenseIds, ...splitExpenseIds])];
 
@@ -44,7 +44,7 @@ export async function GET() {
     return NextResponse.json({ expenses: [] });
   }
 
-  const expenseRows = db
+  const expenseRows = await db
     .select()
     .from(expenses)
     .where(
@@ -53,14 +53,13 @@ export async function GET() {
         ne(expenses.type, "auto_settlement"),
       ),
     )
-    .orderBy(desc(expenses.createdAt))
-    .all();
+    .orderBy(desc(expenses.createdAt));
 
   const topLevelIds = expenseRows.map((e) => e.id);
 
   const autoSettlementRows =
     topLevelIds.length > 0
-      ? db
+      ? await db
           .select()
           .from(expenses)
           .where(
@@ -69,7 +68,6 @@ export async function GET() {
               inArray(expenses.originExpenseId, topLevelIds),
             ),
           )
-          .all()
       : [];
 
   const autoByOrigin = new Map<number, typeof autoSettlementRows>();
@@ -80,8 +78,8 @@ export async function GET() {
     autoByOrigin.set(as.originExpenseId, list);
   }
 
-  function hydrateExpense(expense: (typeof expenseRows)[number]) {
-    const payers = db
+  async function hydrateExpense(expense: (typeof expenseRows)[number]) {
+    const payers = await db
       .select({
         amount: expensePayers.amount,
         userId: users.id,
@@ -90,10 +88,9 @@ export async function GET() {
       })
       .from(expensePayers)
       .innerJoin(users, eq(expensePayers.userId, users.id))
-      .where(eq(expensePayers.expenseId, expense.id))
-      .all();
+      .where(eq(expensePayers.expenseId, expense.id));
 
-    const splits = db
+    const splits = await db
       .select({
         amount: expenseSplits.amount,
         userId: users.id,
@@ -102,37 +99,33 @@ export async function GET() {
       })
       .from(expenseSplits)
       .innerJoin(users, eq(expenseSplits.userId, users.id))
-      .where(eq(expenseSplits.expenseId, expense.id))
-      .all();
+      .where(eq(expenseSplits.expenseId, expense.id));
 
-    const debtRows = db
+    const debtRows = await db
       .select({
         amount: expenseDebts.amount,
         fromUserId: expenseDebts.fromUserId,
         toUserId: expenseDebts.toUserId,
       })
       .from(expenseDebts)
-      .where(eq(expenseDebts.expenseId, expense.id))
-      .all();
+      .where(eq(expenseDebts.expenseId, expense.id));
 
     const debtUserIds = [
       ...new Set(debtRows.flatMap((d) => [d.fromUserId, d.toUserId])),
     ];
     const debtUsers =
       debtUserIds.length > 0
-        ? db
+        ? await db
             .select({ id: users.id, name: users.name, email: users.email })
             .from(users)
             .where(inArray(users.id, debtUserIds))
-            .all()
         : [];
     const userMap = new Map(debtUsers.map((u) => [u.id, u]));
 
-    const createdBy = db
+    const [createdBy] = await db
       .select({ id: users.id, name: users.name, email: users.email })
       .from(users)
-      .where(eq(users.id, expense.createdById))
-      .get();
+      .where(eq(users.id, expense.createdById));
 
     return {
       id: expense.id,
@@ -165,13 +158,14 @@ export async function GET() {
     };
   }
 
-  const result = expenseRows.map((expense) => {
-    const hydrated = hydrateExpense(expense);
+  const result = await Promise.all(
+    expenseRows.map(async (expense) => {
+      const hydrated = await hydrateExpense(expense);
 
-    const childRows = autoByOrigin.get(expense.id) ?? [];
-    const visibleChildren = childRows.filter((child) => {
-      const isInvolved =
-        db
+      const childRows = autoByOrigin.get(expense.id) ?? [];
+      const visibleChildren: typeof childRows = [];
+      for (const child of childRows) {
+        const [payerMatch] = await db
           .select({ id: expensePayers.id })
           .from(expensePayers)
           .where(
@@ -179,9 +173,12 @@ export async function GET() {
               eq(expensePayers.expenseId, child.id),
               eq(expensePayers.userId, userId),
             ),
-          )
-          .get() ||
-        db
+          );
+        if (payerMatch) {
+          visibleChildren.push(child);
+          continue;
+        }
+        const [splitMatch] = await db
           .select({ id: expenseSplits.id })
           .from(expenseSplits)
           .where(
@@ -189,16 +186,20 @@ export async function GET() {
               eq(expenseSplits.expenseId, child.id),
               eq(expenseSplits.userId, userId),
             ),
-          )
-          .get();
-      return !!isInvolved;
-    });
+          );
+        if (splitMatch) {
+          visibleChildren.push(child);
+        }
+      }
 
-    return {
-      ...hydrated,
-      autoSettlements: visibleChildren.map(hydrateExpense),
-    };
-  });
+      return {
+        ...hydrated,
+        autoSettlements: await Promise.all(
+          visibleChildren.map(hydrateExpense),
+        ),
+      };
+    }),
+  );
 
   return NextResponse.json({ expenses: result });
 }
@@ -272,11 +273,10 @@ export async function POST(request: NextRequest) {
       ...splits.map((s) => s.userId),
     ]),
   ];
-  const existingUsers = db
+  const existingUsers = await db
     .select({ id: users.id })
     .from(users)
-    .where(inArray(users.id, allUserIds))
-    .all();
+    .where(inArray(users.id, allUserIds));
 
   if (existingUsers.length !== allUserIds.length) {
     return NextResponse.json(
@@ -287,8 +287,8 @@ export async function POST(request: NextRequest) {
 
   const debts = computeDebts(payers, splits);
 
-  const result = db.transaction((tx) => {
-    const inserted = tx
+  const result = await db.transaction(async (tx) => {
+    const [inserted] = await tx
       .insert(expenses)
       .values({
         description: description.trim(),
@@ -296,44 +296,37 @@ export async function POST(request: NextRequest) {
         type,
         createdById: session.userId!,
       })
-      .returning()
-      .get();
+      .returning();
 
     for (const payer of payers) {
-      tx.insert(expensePayers)
-        .values({
-          expenseId: inserted.id,
-          userId: payer.userId,
-          amount: payer.amount,
-        })
-        .run();
+      await tx.insert(expensePayers).values({
+        expenseId: inserted.id,
+        userId: payer.userId,
+        amount: payer.amount,
+      });
     }
 
     for (const split of splits) {
-      tx.insert(expenseSplits)
-        .values({
-          expenseId: inserted.id,
-          userId: split.userId,
-          amount: split.amount,
-        })
-        .run();
+      await tx.insert(expenseSplits).values({
+        expenseId: inserted.id,
+        userId: split.userId,
+        amount: split.amount,
+      });
     }
 
     for (const debt of debts) {
-      tx.insert(expenseDebts)
-        .values({
-          expenseId: inserted.id,
-          fromUserId: debt.fromUserId,
-          toUserId: debt.toUserId,
-          amount: debt.amount,
-        })
-        .run();
+      await tx.insert(expenseDebts).values({
+        expenseId: inserted.id,
+        fromUserId: debt.fromUserId,
+        toUserId: debt.toUserId,
+        amount: debt.amount,
+      });
     }
 
     return inserted;
   });
 
-  const autoSettlements = settleCycles(session.userId!, result.id);
+  const autoSettlements = await settleCycles(session.userId!, result.id);
 
   return NextResponse.json(
     { expense: result, autoSettlements },

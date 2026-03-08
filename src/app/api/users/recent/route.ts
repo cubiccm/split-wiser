@@ -13,17 +13,15 @@ export async function GET() {
 
   const userId = session.userId;
 
-  const payerExpenseIds = db
+  const payerExpenseIds = await db
     .selectDistinct({ id: expensePayers.expenseId })
     .from(expensePayers)
-    .where(eq(expensePayers.userId, userId))
-    .all();
+    .where(eq(expensePayers.userId, userId));
 
-  const splitExpenseIds = db
+  const splitExpenseIds = await db
     .selectDistinct({ id: expenseSplits.expenseId })
     .from(expenseSplits)
-    .where(eq(expenseSplits.userId, userId))
-    .all();
+    .where(eq(expenseSplits.userId, userId));
 
   const allExpenseIds = [
     ...new Set([
@@ -36,7 +34,7 @@ export async function GET() {
     return NextResponse.json({ users: [] });
   }
 
-  const payerContacts = db
+  const payerContacts = await db
     .select({
       userId: expensePayers.userId,
       lastInteraction: sql<number>`max(${expenses.createdAt})`,
@@ -49,10 +47,9 @@ export async function GET() {
         ne(expensePayers.userId, userId),
       ),
     )
-    .groupBy(expensePayers.userId)
-    .all();
+    .groupBy(expensePayers.userId);
 
-  const splitContacts = db
+  const splitContacts = await db
     .select({
       userId: expenseSplits.userId,
       lastInteraction: sql<number>`max(${expenses.createdAt})`,
@@ -65,8 +62,7 @@ export async function GET() {
         ne(expenseSplits.userId, userId),
       ),
     )
-    .groupBy(expenseSplits.userId)
-    .all();
+    .groupBy(expenseSplits.userId);
 
   const contactMap = new Map<number, number>();
   for (const c of [...payerContacts, ...splitContacts]) {
@@ -86,11 +82,10 @@ export async function GET() {
     return NextResponse.json({ users: [] });
   }
 
-  const contactUsers = db
+  const contactUsers = await db
     .select({ id: users.id, name: users.name, email: users.email })
     .from(users)
-    .where(inArray(users.id, sortedContactIds))
-    .all();
+    .where(inArray(users.id, sortedContactIds));
 
   const userMap = new Map(contactUsers.map((u) => [u.id, u]));
   const orderedResults = sortedContactIds
