@@ -1,0 +1,66 @@
+---
+description: Project overview, tech stack, and conventions for SplitWiser
+alwaysApply: true
+---
+
+# SplitWiser
+
+A web app for splitting expenses between friends. Users create groups, add expenses, and the app calculates who owes whom — minimizing the total number of transactions needed to settle up.
+
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router, `src/app/`)
+- **Language:** TypeScript 5 (strict mode)
+- **React:** 19
+- **Styling:** Tailwind CSS 4
+- **UI components:** shadcn/ui (installed into `src/components/ui/`)
+- **Database:** SQLite via better-sqlite3
+- **ORM:** Drizzle ORM (schema in `src/lib/db/schema.ts`, connection in `src/lib/db/index.ts`)
+- **Package manager:** pnpm
+- **Path alias:** `@/*` maps to `./src/*`
+
+## Project Structure
+
+```
+src/
+  app/           # Next.js App Router pages and layouts
+  components/    # Reusable React components
+    ui/          # shadcn/ui components (do not edit directly unless customizing)
+  lib/           # Utility functions, helpers, and shared logic
+    db/          # Database connection and schema
+      index.ts   # Drizzle client (import as `@/lib/db`)
+      schema.ts  # Table definitions
+  hooks/         # Custom React hooks
+  types/         # Shared TypeScript type definitions
+drizzle/         # Auto-generated SQL migrations (commit these)
+drizzle.config.ts
+```
+
+## Conventions
+
+- Use **functional components** exclusively — no class components.
+- Prefer **Server Components** by default. Only add `"use client"` when the component needs interactivity, hooks, or browser APIs.
+- Co-locate related files: a feature's components, hooks, and types should live near each other.
+- Use the `@/` path alias for all imports (e.g. `import { Button } from "@/components/ui/button"`).
+- Name component files in **kebab-case** (e.g. `expense-card.tsx`). Name types/interfaces in **PascalCase**.
+- Keep components small and composable. Extract logic into custom hooks in `src/hooks/`.
+- Use Tailwind utility classes for styling. Avoid inline `style` props and CSS modules.
+- Use **shadcn/ui** components from `@/components/ui/` as building blocks. Add new shadcn components via `pnpm dlx shadcn@latest add <component>`. Do responsive design using Tailwind classes.
+
+## Database Conventions
+
+- All table schemas live in `src/lib/db/schema.ts`. Import the `db` client from `@/lib/db`.
+- Use **Drizzle ORM** for all database queries — no raw SQL outside of migrations.
+- Column names use **snake_case** in the database; Drizzle maps them to **camelCase** in TypeScript.
+- After changing the schema, run `pnpm db:generate` then `pnpm db:migrate`.
+- The `drizzle/` migrations folder should be committed. The `*.db` file should not.
+- Use `pnpm db:studio` to browse data during development.
+
+## Commands
+
+- `pnpm dev` — start dev server
+- `pnpm build` — production build
+- `pnpm lint` — run ESLint
+- `pnpm db:generate` — generate migration from schema changes
+- `pnpm db:migrate` — apply pending migrations
+- `pnpm db:studio` — open Drizzle Studio (database browser)
