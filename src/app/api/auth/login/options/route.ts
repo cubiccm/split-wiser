@@ -9,42 +9,43 @@ import { getSession } from "@/lib/auth/session";
 import { rpID } from "@/lib/auth/webauthn";
 
 export async function POST(request: Request) {
-  const { email } = (await request.json()) as { email: string };
+  const { email } = (await request.json()) as { email?: string };
 
-  if (!email?.trim()) {
-    return NextResponse.json(
-      { error: "Email is required" },
-      { status: 400 },
-    );
-  }
+  let allowCredentials:
+    | { id: string; transports?: AuthenticatorTransportFuture[] }[]
+    | undefined;
 
-  const user = db
-    .select()
-    .from(users)
-    .where(eq(users.email, email.toLowerCase()))
-    .get();
+  if (email?.trim()) {
+    const user = db
+      .select()
+      .from(users)
+      .where(eq(users.email, email.toLowerCase()))
+      .get();
 
-  if (!user) {
-    return NextResponse.json(
-      { error: "No account found with this email" },
-      { status: 404 },
-    );
-  }
+    if (!user) {
+      return NextResponse.json(
+        { error: "No account found with this email" },
+        { status: 404 },
+      );
+    }
 
-  const credentials = db
-    .select()
-    .from(passkeyCredentials)
-    .where(eq(passkeyCredentials.userId, user.id))
-    .all();
+    const credentials = db
+      .select()
+      .from(passkeyCredentials)
+      .where(eq(passkeyCredentials.userId, user.id))
+      .all();
 
-  const options = await generateAuthenticationOptions({
-    rpID,
-    allowCredentials: credentials.map((cred) => ({
+    allowCredentials = credentials.map((cred) => ({
       id: cred.id,
       transports: cred.transports
         ? (JSON.parse(cred.transports) as AuthenticatorTransportFuture[])
         : undefined,
-    })),
+    }));
+  }
+
+  const options = await generateAuthenticationOptions({
+    rpID,
+    allowCredentials,
   });
 
   const session = await getSession();

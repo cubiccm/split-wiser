@@ -16,6 +16,7 @@ A web app for splitting expenses between friends. Users create groups, add expen
 - **UI components:** shadcn/ui (installed into `src/components/ui/`)
 - **Database:** SQLite via better-sqlite3
 - **ORM:** Drizzle ORM (schema in `src/lib/db/schema.ts`, connection in `src/lib/db/index.ts`)
+- **Formatting:** Prettier (with `prettier-plugin-tailwindcss` for class sorting)
 - **Package manager:** pnpm
 - **Path alias:** `@/*` maps to `./src/*`
 
@@ -61,6 +62,8 @@ drizzle.config.ts
 - `pnpm dev` — start dev server
 - `pnpm build` — production build
 - `pnpm lint` — run ESLint
+- `pnpm format` — format all files with Prettier
+- `pnpm format:check` — check formatting without writing
 - `pnpm db:generate` — generate migration from schema changes
 - `pnpm db:migrate` — apply pending migrations
 - `pnpm db:studio` — open Drizzle Studio (database browser)

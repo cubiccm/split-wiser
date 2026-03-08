@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     userDisplayName: name.trim(),
     attestationType: "none",
     authenticatorSelection: {
-      residentKey: "preferred",
+      residentKey: "required",
       userVerification: "preferred",
       authenticatorAttachment: "platform",
     },

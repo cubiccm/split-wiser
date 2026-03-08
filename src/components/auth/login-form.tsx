@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { startAuthentication } from "@simplewebauthn/browser";
+import { KeyRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +17,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function authenticate(email?: string) {
     setError("");
     setLoading(true);
 
@@ -64,26 +64,53 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     }
   }
 
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await authenticate(email);
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="login-email">Email</Label>
-        <Input
-          id="login-email"
-          type="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          disabled={loading}
-        />
-      </div>
-      {error && (
-        <p className="text-sm text-destructive">{error}</p>
-      )}
-      <Button type="submit" disabled={loading} className="w-full">
-        {loading ? "Verifying passkey…" : "Sign in"}
+    <div className="flex flex-col gap-4">
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        disabled={loading}
+        onClick={() => authenticate()}
+      >
+        <KeyRound className="mr-2 h-4 w-4" />
+        {loading ? "Verifying passkey…" : "Sign in with passkey"}
       </Button>
-    </form>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-card text-muted-foreground px-2">
+            or use email
+          </span>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="login-email">Email</Label>
+          <Input
+            id="login-email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={loading}
+          />
+        </div>
+        {error && <p className="text-destructive text-sm">{error}</p>}
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading ? "Verifying passkey…" : "Sign in with email"}
+        </Button>
+      </form>
+    </div>
   );
 }

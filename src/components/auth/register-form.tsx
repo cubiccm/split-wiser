@@ -91,9 +91,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           disabled={loading}
         />
       </div>
-      {error && (
-        <p className="text-sm text-destructive">{error}</p>
-      )}
+      {error && <p className="text-destructive text-sm">{error}</p>}
       <Button type="submit" disabled={loading} className="w-full">
         {loading ? "Setting up passkey…" : "Create account"}
       </Button>

@@ -44,7 +44,9 @@ export async function POST(request: Request) {
         publicKey: base64UrlToUint8Array(credential.publicKey),
         counter: credential.counter,
         transports: credential.transports
-          ? (JSON.parse(credential.transports) as AuthenticatorTransportFuture[])
+          ? (JSON.parse(
+              credential.transports,
+            ) as AuthenticatorTransportFuture[])
           : undefined,
       },
     });
