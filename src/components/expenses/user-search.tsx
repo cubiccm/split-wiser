@@ -38,13 +38,13 @@ export function UserSearch({
 
   const search = useCallback((q: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (q.trim().length < 2) {
+    if (q.trim().length === 0) {
       setResults([]);
       return;
     }
-    setLoading(true);
     debounceRef.current = setTimeout(async () => {
       try {
+        setLoading(true);
         const res = await fetch(
           `/api/users/search?q=${encodeURIComponent(q.trim())}`,
         );
@@ -90,18 +90,27 @@ export function UserSearch({
   }
 
   return (
-    <div ref={containerRef} className="space-y-2">
+    <div ref={containerRef} className="flex flex-col gap-1">
       <label className="text-sm font-medium">{label}</label>
 
       {selected.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {selected.map((user) => (
-            <Badge key={user.id} variant="secondary" className="gap-1 pr-1">
-              {user.name}
+            <Badge
+              key={user.id}
+              variant="secondary"
+              className="h-12 gap-2 ps-4 pe-2"
+            >
+              <div className="flex flex-col gap-0.5">
+                <div className="text-sm font-medium">{user.name}</div>
+                <div className="text-muted-foreground text-xs">
+                  {user.email}
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => handleRemove(user.id)}
-                className="hover:bg-foreground/10 ml-0.5 rounded-full p-0.5"
+                className="hover:bg-foreground/10 rounded-full p-1"
               >
                 <XIcon className="size-3" />
               </button>

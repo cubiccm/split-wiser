@@ -60,7 +60,7 @@ export default function Home() {
           <BouncingTitle text="Split Wiser" />
         </div>
         <DropdownMenu>
-          <DropdownMenuTrigger className="focus-visible:ring-ring hover:bg-muted data-[state=open]:bg-muted flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2">
+          <DropdownMenuTrigger className="focus-visible:ring-ring hover:bg-muted data-[state=open]:bg-muted flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors focus-visible:ring-2 focus-visible:outline-none">
             <div className="flex flex-col items-end">
               <p className="truncate text-base font-medium">{user.name}</p>
               <p className="text-muted-foreground truncate text-sm">
@@ -79,7 +79,7 @@ export default function Home() {
       </header>
 
       <div className="mt-6 flex items-center justify-between gap-4">
-        <h2 className="text-lg font-medium">Expenses</h2>
+        <h2 className="text-lg font-medium">Activities</h2>
         <AddExpenseDialog
           currentUser={user}
           onCreated={() => setRefreshKey((k) => k + 1)}

@@ -33,7 +33,7 @@ export function AddExpenseDialog({
 }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
+  const [cents, setCents] = useState(0);
   const [payers, setPayers] = useState<User[]>([currentUser]);
   const [participants, setParticipants] = useState<User[]>([currentUser]);
   const [submitting, setSubmitting] = useState(false);
@@ -41,7 +41,7 @@ export function AddExpenseDialog({
 
   const reset = useCallback(() => {
     setDescription("");
-    setAmount("");
+    setCents(0);
     setPayers([currentUser]);
     setParticipants([currentUser]);
     setError("");
@@ -51,7 +51,7 @@ export function AddExpenseDialog({
     e.preventDefault();
     setError("");
 
-    const totalAmount = parseFloat(amount);
+    const totalAmount = cents / 100;
     if (!description.trim()) {
       setError("Description is required");
       return;
@@ -143,7 +143,7 @@ export function AddExpenseDialog({
           </DialogHeader>
 
           <div className="mt-4 space-y-4">
-            <div className="space-y-2">
+            <div className="flex flex-col gap-1">
               <label htmlFor="description" className="text-sm font-medium">
                 Description
               </label>
@@ -155,31 +155,38 @@ export function AddExpenseDialog({
               />
             </div>
 
-            <div className="space-y-2">
+            <div>
               <label htmlFor="amount" className="text-sm font-medium">
                 Total amount
               </label>
               <Input
                 id="amount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                type="text"
+                inputMode="decimal"
+                value={(cents / 100).toFixed(2)}
+                onKeyDown={(e) => {
+                  e.preventDefault();
+                  if (e.key >= "0" && e.key <= "9") {
+                    setCents((prev) => prev * 10 + Number(e.key));
+                  } else if (e.key === "Backspace") {
+                    setCents((prev) => Math.floor(prev / 10));
+                  }
+                }}
+                onChange={() => {}}
+                className="h-20 border-0 text-center text-5xl! font-semibold focus-visible:ring-0"
               />
             </div>
-
-            <UserSearch
-              label="Paid for by"
-              selected={payers}
-              onSelect={setPayers}
-            />
 
             <UserSearch
               label="Split between"
               selected={participants}
               onSelect={setParticipants}
+            />
+
+            <UserSearch
+              label="Paid for by"
+              selected={payers}
+              onSelect={setPayers}
             />
 
             {error && <p className="text-destructive text-sm">{error}</p>}
