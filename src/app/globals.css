@@ -116,10 +116,27 @@
   }
 }
 
+@keyframes letter-bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  40% {
+    transform: translateY(-10%);
+  }
+
+  60% {
+    transform: translateY(-10%);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

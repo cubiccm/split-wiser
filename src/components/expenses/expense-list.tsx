@@ -76,18 +76,18 @@ function NetSummary({
   if (net > 0) {
     return (
       <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-        you lent {formatCurrency(net)}
+        You lent {formatCurrency(net)}
       </span>
     );
   }
   if (net < 0) {
     return (
       <span className="text-sm font-medium text-orange-600 dark:text-orange-400">
-        you owe {formatCurrency(Math.abs(net))}
+        You owe {formatCurrency(Math.abs(net))}
       </span>
     );
   }
-  return <span className="text-muted-foreground text-sm">settled</span>;
+  return <span className="text-muted-foreground text-sm">Settled</span>;
 }
 
 export function ExpenseList({ currentUserId, refreshKey }: ExpenseListProps) {
@@ -148,7 +148,7 @@ export function ExpenseList({ currentUserId, refreshKey }: ExpenseListProps) {
           </CardHeader>
           <CardContent>
             <Separator className="mb-3" />
-            <div className="grid gap-2 text-sm sm:grid-cols-2">
+            <div className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
                 <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                   Paid for by

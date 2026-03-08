@@ -1,9 +1,9 @@
 ---
-description: Project overview, tech stack, and conventions for SplitWiser
+description: Project overview, tech stack, and conventions for Split Wiser
 alwaysApply: true
 ---
 
-# SplitWiser
+# Split Wiser
 
 A web app for splitting expenses between friends. Users create groups, add expenses, and the app calculates who owes whom — minimizing the total number of transactions needed to settle up.
 

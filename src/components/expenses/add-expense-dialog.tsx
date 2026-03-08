@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -128,7 +129,10 @@ export function AddExpenseDialog({
         if (nextOpen) reset();
       }}
     >
-      <DialogTrigger render={<Button />}>Add Expense</DialogTrigger>
+      <DialogTrigger render={<Button size="lg" />}>
+        <Plus className="size-4" />
+        Add Expense
+      </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>

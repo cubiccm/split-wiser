@@ -19,7 +19,7 @@ export function AuthCard({ onSuccess }: AuthCardProps) {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle className="text-xl">SplitWiser</CardTitle>
+        <CardTitle className="text-xl">Split Wiser</CardTitle>
         <CardDescription>
           Sign in or create an account to get started.
         </CardDescription>

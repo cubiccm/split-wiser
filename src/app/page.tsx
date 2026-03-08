@@ -3,9 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { AuthCard } from "@/components/auth/auth-card";
-import { Button } from "@/components/ui/button";
+import { BouncingTitle } from "@/components/bouncing-title";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ExpenseList } from "@/components/expenses/expense-list";
+import { ChevronDownIcon, LogOutIcon } from "lucide-react";
 
 interface User {
   id: number;
@@ -48,14 +55,27 @@ export default function Home() {
 
   return (
     <div className="mx-auto min-h-svh max-w-2xl px-4 py-6">
-      <header className="flex items-center justify-between gap-4">
+      <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight">SplitWiser</h1>
-          <p className="text-muted-foreground truncate text-sm">{user.email}</p>
+          <BouncingTitle text="Split Wiser" />
         </div>
-        <Button variant="outline" size="sm" onClick={handleLogout}>
-          Sign out
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="focus-visible:ring-ring hover:bg-muted data-[state=open]:bg-muted flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2">
+            <div className="flex flex-col items-end">
+              <p className="truncate text-base font-medium">{user.name}</p>
+              <p className="text-muted-foreground truncate text-sm">
+                {user.email}
+              </p>
+            </div>
+            <ChevronDownIcon className="text-muted-foreground size-4 shrink-0" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOutIcon className="size-4" />
+              Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       <div className="mt-6 flex items-center justify-between gap-4">
