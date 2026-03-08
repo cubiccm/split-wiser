@@ -10,6 +10,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoginForm } from "@/components/auth/login-form";
 import { RegisterForm } from "@/components/auth/register-form";
+import { BouncingTitle } from "@/components/bouncing-title";
 
 interface AuthCardProps {
   onSuccess: (user: { id: number; name: string; email: string }) => void;
@@ -19,7 +20,9 @@ export function AuthCard({ onSuccess }: AuthCardProps) {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle className="text-xl">Split Wiser</CardTitle>
+        <CardTitle className="text-xl">
+          <BouncingTitle text="Split Wiser" />
+        </CardTitle>
         <CardDescription>
           Sign in or create an account to get started.
         </CardDescription>
