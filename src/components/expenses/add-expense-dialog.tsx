@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { UserSelect } from "@/components/expenses/user-select";
 
 interface User {
@@ -112,6 +113,12 @@ export function AddExpenseDialog({
   const [splitAmounts, setSplitAmounts] = useState<Record<number, number>>({});
   const [splitSharedCents, setSplitSharedCents] = useState(0);
 
+  const [cashbackRate, setCashbackRate] = useState(0);
+
+  const cashbackCents =
+    cashbackRate > 0 ? Math.round((cents * cashbackRate) / 100) : 0;
+  const effectiveCents = cents - cashbackCents;
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<
@@ -131,6 +138,7 @@ export function AddExpenseDialog({
   const reset = useCallback(() => {
     setDescription("");
     setCents(0);
+    setCashbackRate(0);
     setPayers([]);
     setPayerEvenSplit(true);
     setPayerAmounts({});
@@ -168,7 +176,7 @@ export function AddExpenseDialog({
     setError("");
     setFieldErrors({});
 
-    const totalAmount = cents / 100;
+    const totalAmount = effectiveCents / 100;
     const errors: typeof fieldErrors = {};
 
     if (!description.trim()) errors.description = "Description is required";
@@ -250,7 +258,7 @@ export function AddExpenseDialog({
           Add Expense
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>New Expense</DialogTitle>
@@ -320,6 +328,44 @@ export function AddExpenseDialog({
               )}
             </div>
 
+            <div className="flex flex-col gap-1">
+              <label className="font-medium">Cashback</label>
+              <ToggleGroup
+                value={cashbackRate > 0 ? [String(cashbackRate)] : ["0"]}
+                onValueChange={(values) =>
+                  setCashbackRate(values.length > 0 ? Number(values[0]) : 0)
+                }
+                className="w-full"
+                variant="outline"
+                size="sm"
+              >
+                <ToggleGroupItem value="0" className="flex-1">
+                  None
+                </ToggleGroupItem>
+                {[1, 2, 3, 5].map((rate) => (
+                  <ToggleGroupItem
+                    key={rate}
+                    value={String(rate)}
+                    className="flex-1"
+                  >
+                    {rate}%
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+
+              {cashbackRate > 0 && cents > 0 && (
+                <p className="text-muted-foreground text-center text-sm">
+                  After {cashbackRate}% cashback:{" "}
+                  <span className="text-foreground font-semibold">
+                    ${(effectiveCents / 100).toFixed(2)}
+                  </span>
+                  <span className="ml-1 text-xs text-green-600">
+                    (−${(cashbackCents / 100).toFixed(2)})
+                  </span>
+                </p>
+              )}
+            </div>
+
             <UserSelect
               label="Split between"
               currentUser={currentUser}
@@ -336,7 +382,7 @@ export function AddExpenseDialog({
                   });
                 }
               }}
-              totalCents={cents}
+              totalCents={effectiveCents}
               evenSplit={splitEvenSplit}
               onEvenSplitChange={setSplitEvenSplit}
               customAmounts={splitAmounts}
@@ -363,7 +409,7 @@ export function AddExpenseDialog({
                   });
                 }
               }}
-              totalCents={cents}
+              totalCents={effectiveCents}
               evenSplit={payerEvenSplit}
               onEvenSplitChange={setPayerEvenSplit}
               customAmounts={payerAmounts}
