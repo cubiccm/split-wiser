@@ -342,7 +342,7 @@ export function AddExpenseDialog({
                 <ToggleGroupItem value="0" className="flex-1">
                   None
                 </ToggleGroupItem>
-                {[1, 2, 3, 5].map((rate) => (
+                {[1, 2, 3, 5, 6].map((rate) => (
                   <ToggleGroupItem
                     key={rate}
                     value={String(rate)}
