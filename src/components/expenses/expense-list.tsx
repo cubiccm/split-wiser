@@ -33,6 +33,8 @@ interface Expense {
   id: number;
   description: string;
   amount: number;
+  originalAmount: number | null;
+  cashbackRate: number;
   type: "expense" | "settlement" | "auto_settlement";
   createdBy: User;
   createdAt: string;
@@ -157,7 +159,10 @@ export function ExpenseList({ currentUserId, refreshKey }: ExpenseListProps) {
                     </Badge>
                   )}
                   {expense.type === "auto_settlement" && (
-                    <Badge variant="outline" className="shrink-0 text-xs text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800">
+                    <Badge
+                      variant="outline"
+                      className="shrink-0 border-violet-200 text-xs text-violet-600 dark:border-violet-800 dark:text-violet-400"
+                    >
                       Auto-settlement
                     </Badge>
                   )}
@@ -167,9 +172,25 @@ export function ExpenseList({ currentUserId, refreshKey }: ExpenseListProps) {
                 </CardDescription>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <span className="text-base font-semibold">
-                  {formatCurrency(expense.amount)}
-                </span>
+                {expense.cashbackRate > 0 && expense.originalAmount != null ? (
+                  <>
+                    <span className="text-base font-semibold">
+                      {formatCurrency(expense.amount)}
+                    </span>
+                    <div className="flex flex-row items-center gap-1">
+                      <span className="text-muted-foreground text-xs tabular-nums line-through">
+                        {formatCurrency(expense.originalAmount)}
+                      </span>
+                      <span className="text-xs text-green-600 dark:text-green-400">
+                        {expense.cashbackRate}% cashback
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <span className="text-base font-semibold">
+                    {formatCurrency(expense.amount)}
+                  </span>
+                )}
                 {expense.type === "expense" && (
                   <NetSummary expense={expense} currentUserId={currentUserId} />
                 )}

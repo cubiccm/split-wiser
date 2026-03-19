@@ -15,7 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Slider } from "@/components/ui/slider";
 import { UserSelect } from "@/components/expenses/user-select";
 
 interface User {
@@ -226,7 +226,8 @@ export function AddExpenseDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           description: description.trim(),
-          amount: totalAmount,
+          originalAmountCents: cents,
+          cashbackRate,
           payers: payerEntries,
           splits: splitEntries,
         }),
@@ -328,30 +329,22 @@ export function AddExpenseDialog({
               )}
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="font-medium">Cashback</label>
-              <ToggleGroup
-                value={cashbackRate > 0 ? [String(cashbackRate)] : ["0"]}
-                onValueChange={(values) =>
-                  setCashbackRate(values.length > 0 ? Number(values[0]) : 0)
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label className="font-medium">Cashback</label>
+                <span className="text-muted-foreground text-sm tabular-nums">
+                  {cashbackRate}%
+                </span>
+              </div>
+              <Slider
+                value={[cashbackRate]}
+                onValueChange={(val) =>
+                  setCashbackRate(Array.isArray(val) ? val[0] : val)
                 }
-                className="w-full"
-                variant="outline"
-                size="sm"
-              >
-                <ToggleGroupItem value="0" className="flex-1">
-                  None
-                </ToggleGroupItem>
-                {[1, 2, 3, 5, 6].map((rate) => (
-                  <ToggleGroupItem
-                    key={rate}
-                    value={String(rate)}
-                    className="flex-1"
-                  >
-                    {rate}%
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
+                min={0}
+                max={10}
+                step={0.5}
+              />
 
               {cashbackRate > 0 && cents > 0 && (
                 <p className="text-muted-foreground text-center text-sm">

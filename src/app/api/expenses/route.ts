@@ -103,6 +103,8 @@ export async function GET() {
       id: expense.id,
       description: expense.description,
       amount: expense.amount,
+      originalAmount: expense.originalAmount,
+      cashbackRate: expense.cashbackRate,
       type: expense.type,
       createdBy,
       createdAt: expense.createdAt.toISOString(),
@@ -160,13 +162,15 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const {
     description,
-    amount,
+    originalAmountCents,
+    cashbackRate = 0,
     payers,
     splits,
     type = "expense",
   }: {
     description: string;
-    amount: number;
+    originalAmountCents: number;
+    cashbackRate?: number;
     payers: PayerInput[];
     splits: SplitInput[];
     type?: "expense" | "settlement";
@@ -174,8 +178,9 @@ export async function POST(request: NextRequest) {
 
   if (
     !description?.trim() ||
-    typeof amount !== "number" ||
-    amount <= 0 ||
+    typeof originalAmountCents !== "number" ||
+    !Number.isInteger(originalAmountCents) ||
+    originalAmountCents <= 0 ||
     !Array.isArray(payers) ||
     payers.length === 0 ||
     !Array.isArray(splits) ||
@@ -183,6 +188,29 @@ export async function POST(request: NextRequest) {
   ) {
     return NextResponse.json(
       { error: "Invalid expense data" },
+      { status: 400 },
+    );
+  }
+
+  if (
+    typeof cashbackRate !== "number" ||
+    cashbackRate < 0 ||
+    cashbackRate >= 100
+  ) {
+    return NextResponse.json(
+      { error: "Cashback rate must be a number >= 0 and < 100" },
+      { status: 400 },
+    );
+  }
+
+  const cashbackCents = Math.round((originalAmountCents * cashbackRate) / 100);
+  const effectiveCents = originalAmountCents - cashbackCents;
+  const amount = effectiveCents / 100;
+  const originalAmount = originalAmountCents / 100;
+
+  if (amount <= 0) {
+    return NextResponse.json(
+      { error: "Effective amount after cashback must be positive" },
       { status: 400 },
     );
   }
@@ -230,6 +258,8 @@ export async function POST(request: NextRequest) {
       .values({
         description: description.trim(),
         amount,
+        originalAmount,
+        cashbackRate,
         type,
         createdById: session.userId!,
       })

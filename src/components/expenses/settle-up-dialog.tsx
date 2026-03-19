@@ -78,7 +78,8 @@ export function SettleUpDialog({
           description: youOwe
             ? `${currentUser.name} paid ${counterpart.name}`
             : `${counterpart.name} paid ${currentUser.name}`,
-          amount,
+          originalAmountCents: cents,
+          cashbackRate: 0,
           type: "settlement",
           payers,
           splits,

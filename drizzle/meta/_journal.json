@@ -15,6 +15,13 @@
       "when": 1773011155335,
       "tag": "0001_romantic_pandemic",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1773898182917,
+      "tag": "0002_loose_firestar",
+      "breakpoints": true
     }
   ]
 }

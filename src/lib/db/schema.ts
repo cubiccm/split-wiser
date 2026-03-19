@@ -1,10 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  integer,
-  real,
-  sqliteTable,
-  text,
-} from "drizzle-orm/sqlite-core";
+import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -51,6 +46,8 @@ export const expenses = sqliteTable("expenses", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   description: text("description").notNull(),
   amount: real("amount").notNull(),
+  originalAmount: real("original_amount"),
+  cashbackRate: real("cashback_rate").notNull().default(0),
   type: text("type", { enum: ["expense", "settlement", "auto_settlement"] })
     .notNull()
     .default("expense"),
