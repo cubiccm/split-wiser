@@ -54,6 +54,7 @@ export const expenses = sqliteTable("expenses", {
   createdById: integer("created_by_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  voidedAt: integer("voided_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

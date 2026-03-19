@@ -108,6 +108,7 @@ export async function GET() {
       type: expense.type,
       createdBy,
       createdAt: expense.createdAt.toISOString(),
+      voidedAt: expense.voidedAt?.toISOString() ?? null,
       payers: payers.map((p) => ({
         user: { id: p.userId, name: p.userName, email: p.userEmail },
         amount: p.amount,

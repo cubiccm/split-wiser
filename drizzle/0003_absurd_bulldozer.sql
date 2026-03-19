@@ -1,0 +1,1 @@
+ALTER TABLE `expenses` ADD `voided_at` integer;

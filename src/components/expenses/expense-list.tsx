@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Ban } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -11,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { VoidExpenseDialog } from "@/components/expenses/void-expense-dialog";
 
 interface User {
   id: number;
@@ -38,6 +41,7 @@ interface Expense {
   type: "expense" | "settlement" | "auto_settlement";
   createdBy: User;
   createdAt: string;
+  voidedAt: string | null;
   payers: ExpenseEntry[];
   splits: ExpenseEntry[];
   debts: DebtEntry[];
@@ -46,6 +50,7 @@ interface Expense {
 interface ExpenseListProps {
   currentUserId: number;
   refreshKey: number;
+  onRefresh?: () => void;
 }
 
 function formatCurrency(amount: number) {
@@ -106,9 +111,14 @@ function NetSummary({
   );
 }
 
-export function ExpenseList({ currentUserId, refreshKey }: ExpenseListProps) {
+export function ExpenseList({
+  currentUserId,
+  refreshKey,
+  onRefresh,
+}: ExpenseListProps) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [voidTarget, setVoidTarget] = useState<Expense | null>(null);
 
   const fetchExpenses = useCallback(async () => {
     try {
@@ -125,6 +135,11 @@ export function ExpenseList({ currentUserId, refreshKey }: ExpenseListProps) {
   useEffect(() => {
     fetchExpenses();
   }, [fetchExpenses, refreshKey]);
+
+  function handleVoided() {
+    fetchExpenses();
+    onRefresh?.();
+  }
 
   if (loading) {
     return (
@@ -143,106 +158,163 @@ export function ExpenseList({ currentUserId, refreshKey }: ExpenseListProps) {
   }
 
   return (
-    <div className="space-y-3">
-      {expenses.map((expense) => (
-        <Card key={expense.id}>
-          <CardHeader>
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="truncate text-base">
-                    {expense.description}
-                  </CardTitle>
-                  {expense.type === "settlement" && (
-                    <Badge variant="secondary" className="shrink-0 text-xs">
-                      Settlement
-                    </Badge>
-                  )}
-                  {expense.type === "auto_settlement" && (
-                    <Badge
-                      variant="outline"
-                      className="shrink-0 border-violet-200 text-xs text-violet-600 dark:border-violet-800 dark:text-violet-400"
-                    >
-                      Auto-settlement
-                    </Badge>
-                  )}
-                </div>
-                <CardDescription>
-                  {expense.createdBy.name} &middot; {timeAgo(expense.createdAt)}
-                </CardDescription>
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                {expense.cashbackRate > 0 && expense.originalAmount != null ? (
-                  <>
-                    <span className="text-base font-semibold">
-                      {formatCurrency(expense.amount)}
-                    </span>
-                    <div className="flex flex-row items-center gap-1">
-                      <span className="text-muted-foreground text-xs tabular-nums line-through">
-                        {formatCurrency(expense.originalAmount)}
-                      </span>
-                      <span className="text-xs text-green-600 dark:text-green-400">
-                        {expense.cashbackRate}% cashback
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <span className="text-base font-semibold">
-                    {formatCurrency(expense.amount)}
-                  </span>
-                )}
-                {expense.type === "expense" && (
-                  <NetSummary expense={expense} currentUserId={currentUserId} />
-                )}
-              </div>
-            </div>
-          </CardHeader>
+    <>
+      <div className="space-y-3">
+        {expenses.map((expense) => {
+          const isVoided = !!expense.voidedAt;
+          const canVoid = !isVoided && expense.createdBy.id === currentUserId;
 
-          {expense.type === "expense" && (
-            <CardContent>
-              <Separator className="mb-3" />
-              <div className="grid gap-4 text-sm sm:grid-cols-2">
-                <div>
-                  <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                    {expense.splits.length === 1 ? "Owed by" : "Split between"}
-                  </span>
-                  <div className="mt-1 space-y-0.5">
-                    {expense.splits.map((s) => (
-                      <div
-                        key={s.user.id}
-                        className="flex items-center justify-between gap-2"
+          return (
+            <Card key={expense.id} className={isVoided ? "opacity-60" : ""}>
+              <CardHeader>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <CardTitle
+                        className={`truncate text-base ${isVoided ? "line-through" : ""}`}
                       >
-                        <span className="truncate">{s.user.name}</span>
-                        <span className="text-muted-foreground shrink-0 tabular-nums">
-                          {formatCurrency(s.amount)}
+                        {expense.description}
+                      </CardTitle>
+                      {isVoided && (
+                        <Badge
+                          variant="outline"
+                          className="shrink-0 border-red-200 text-xs text-red-600 dark:border-red-800 dark:text-red-400"
+                        >
+                          Voided
+                        </Badge>
+                      )}
+                      {!isVoided && expense.type === "settlement" && (
+                        <Badge variant="secondary" className="shrink-0 text-xs">
+                          Settlement
+                        </Badge>
+                      )}
+                      {!isVoided && expense.type === "auto_settlement" && (
+                        <Badge
+                          variant="outline"
+                          className="shrink-0 border-violet-200 text-xs text-violet-600 dark:border-violet-800 dark:text-violet-400"
+                        >
+                          Auto-settlement
+                        </Badge>
+                      )}
+                    </div>
+                    <CardDescription>
+                      {expense.createdBy.name} &middot;{" "}
+                      {timeAgo(expense.createdAt)}
+                    </CardDescription>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    {expense.cashbackRate > 0 &&
+                    expense.originalAmount != null ? (
+                      <>
+                        <span
+                          className={`text-base font-semibold ${isVoided ? "text-muted-foreground line-through" : ""}`}
+                        >
+                          {formatCurrency(expense.amount)}
                         </span>
-                      </div>
-                    ))}
+                        {!isVoided && (
+                          <div className="flex flex-row items-center gap-1">
+                            <span className="text-muted-foreground text-xs tabular-nums line-through">
+                              {formatCurrency(expense.originalAmount)}
+                            </span>
+                            <span className="text-xs text-green-600 dark:text-green-400">
+                              {expense.cashbackRate}% cashback
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <span
+                        className={`text-base font-semibold ${isVoided ? "text-muted-foreground line-through" : ""}`}
+                      >
+                        {formatCurrency(expense.amount)}
+                      </span>
+                    )}
+                    {!isVoided && expense.type === "expense" && (
+                      <NetSummary
+                        expense={expense}
+                        currentUserId={currentUserId}
+                      />
+                    )}
                   </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                    Paid for by
-                  </span>
-                  <div className="mt-1 space-y-0.5">
-                    {expense.payers.map((p) => (
-                      <div
-                        key={p.user.id}
-                        className="flex items-center justify-between gap-2"
-                      >
-                        <span className="truncate">{p.user.name}</span>
-                        <span className="text-muted-foreground shrink-0 tabular-nums">
-                          {formatCurrency(p.amount)}
-                        </span>
+              </CardHeader>
+
+              {!isVoided && expense.type === "expense" && (
+                <CardContent>
+                  <Separator className="mb-3" />
+                  <div className="grid gap-4 text-sm sm:grid-cols-2">
+                    <div>
+                      <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                        {expense.splits.length === 1
+                          ? "Owed by"
+                          : "Split between"}
+                      </span>
+                      <div className="mt-1 space-y-0.5">
+                        {expense.splits.map((s) => (
+                          <div
+                            key={s.user.id}
+                            className="flex items-center justify-between gap-2"
+                          >
+                            <span className="truncate">{s.user.name}</span>
+                            <span className="text-muted-foreground shrink-0 tabular-nums">
+                              {formatCurrency(s.amount)}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                        Paid for by
+                      </span>
+                      <div className="mt-1 space-y-0.5">
+                        {expense.payers.map((p) => (
+                          <div
+                            key={p.user.id}
+                            className="flex items-center justify-between gap-2"
+                          >
+                            <span className="truncate">{p.user.name}</span>
+                            <span className="text-muted-foreground shrink-0 tabular-nums">
+                              {formatCurrency(p.amount)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
+                </CardContent>
+              )}
+
+              {canVoid && (
+                <div className="flex justify-end px-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-destructive h-auto px-2 py-1 text-xs"
+                    onClick={() => setVoidTarget(expense)}
+                  >
+                    <Ban className="size-3" />
+                    Void
+                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          )}
-        </Card>
-      ))}
-    </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+
+      {voidTarget && (
+        <VoidExpenseDialog
+          open={!!voidTarget}
+          onOpenChange={(open) => {
+            if (!open) setVoidTarget(null);
+          }}
+          expenseId={voidTarget.id}
+          expenseDescription={voidTarget.description}
+          expenseAmount={voidTarget.amount}
+          onVoided={handleVoided}
+        />
+      )}
+    </>
   );
 }

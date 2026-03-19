@@ -119,7 +119,11 @@ export default function Home() {
       </div>
 
       <div className="mt-4">
-        <ExpenseList currentUserId={user.id} refreshKey={refreshKey} />
+        <ExpenseList
+          currentUserId={user.id}
+          refreshKey={refreshKey}
+          onRefresh={refresh}
+        />
       </div>
 
       {settleCounterpart && (
