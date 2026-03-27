@@ -206,16 +206,20 @@ export function ExpenseList({
                     {expense.cashbackRate > 0 &&
                     expense.originalAmount != null ? (
                       <>
-                        <span
-                          className={`text-base font-semibold ${isVoided ? "text-muted-foreground line-through" : ""}`}
-                        >
-                          {formatCurrency(expense.amount)}
-                        </span>
-                        {!isVoided && (
-                          <div className="flex flex-row items-center gap-1">
-                            <span className="text-muted-foreground text-xs tabular-nums line-through">
+                        <div className="flex flex-row gap-1">
+                          {!isVoided && (
+                            <span className="text-muted-foreground text-base tabular-nums line-through">
                               {formatCurrency(expense.originalAmount)}
                             </span>
+                          )}
+                          <span
+                            className={`text-base font-semibold ${isVoided ? "text-muted-foreground line-through" : ""}`}
+                          >
+                            {formatCurrency(expense.amount)}
+                          </span>
+                        </div>
+                        {!isVoided && (
+                          <div className="flex flex-row items-center gap-1">
                             <span className="text-xs text-green-600 dark:text-green-400">
                               {expense.cashbackRate}% cashback
                             </span>
