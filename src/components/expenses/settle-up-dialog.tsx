@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -43,15 +43,19 @@ export function SettleUpDialog({
   onSettled,
 }: SettleUpDialogProps) {
   const [cents, setCents] = useState(() => Math.round(Math.abs(balance) * 100));
+  const [prevBalance, setPrevBalance] = useState(balance);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const youOwe = balance < 0;
   const amount = cents / 100;
 
-  useEffect(() => {
+  // Sync the amount to the balance when it changes. Adjusting state during
+  // render (instead of in an effect) avoids a cascading re-render.
+  if (balance !== prevBalance) {
+    setPrevBalance(balance);
     setCents(Math.round(Math.abs(balance) * 100));
-  }, [balance]);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

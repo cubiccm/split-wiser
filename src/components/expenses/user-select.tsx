@@ -148,10 +148,6 @@ export function UserSelect({
   const [recentUsers, setRecentUsers] = useState<User[]>([]);
   const anchor = useComboboxAnchor();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
-  const excludeIdsRef = useRef(excludeIds);
-  excludeIdsRef.current = excludeIds;
-  const selectedRef = useRef(selected);
-  selectedRef.current = selected;
 
   useEffect(() => {
     let cancelled = false;
@@ -208,8 +204,8 @@ export function UserSelect({
         if (res.ok) {
           const data = await res.json();
           const excludeSet = new Set([
-            ...excludeIdsRef.current,
-            ...selectedRef.current.map((u) => u.id),
+            ...excludeIds,
+            ...selected.map((u) => u.id),
           ]);
           setResults(data.users.filter((u: User) => !excludeSet.has(u.id)));
         }
@@ -217,7 +213,7 @@ export function UserSelect({
         setLoading(false);
       }
     }, 300);
-  }, []);
+  }, [excludeIds, selected]);
 
   const hasSplitProps =
     totalCents !== undefined && onEvenSplitChange && onCustomAmountsChange;

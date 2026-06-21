@@ -12,10 +12,40 @@ interface LoginFormProps {
   onSuccess: (user: { id: number; name: string; email: string }) => void;
 }
 
+// Set by `pnpm dev:local`; lets the email form skip the passkey check.
+const devBypass = process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "1";
+
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  async function devLogin(email: string) {
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/login/dev", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Login failed");
+      }
+
+      const { user } = await res.json();
+      onSuccess(user);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function authenticate(email?: string) {
     setError("");
@@ -66,7 +96,11 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await authenticate(email);
+    if (devBypass) {
+      await devLogin(email);
+    } else {
+      await authenticate(email);
+    }
   }
 
   return (
@@ -105,10 +139,21 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             required
             disabled={loading}
           />
+          {devBypass && (
+            <p className="text-muted-foreground text-xs">
+              Dev mode: passkey check bypassed
+            </p>
+          )}
         </div>
         {error && <p className="text-destructive text-sm">{error}</p>}
         <Button type="submit" disabled={loading} className="w-full">
-          {loading ? "Verifying passkey…" : "Sign in with email"}
+          {devBypass
+            ? loading
+              ? "Signing in…"
+              : "Sign in (dev bypass)"
+            : loading
+              ? "Verifying passkey…"
+              : "Sign in with email"}
         </Button>
       </form>
     </div>

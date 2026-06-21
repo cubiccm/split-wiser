@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:local": "TURSO_DATABASE_URL=file:local.db next dev",
+    "dev:local": "TURSO_DATABASE_URL=file:local.db NEXT_PUBLIC_DEV_AUTH_BYPASS=1 next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

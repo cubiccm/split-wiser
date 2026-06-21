@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -91,7 +91,7 @@ export function AddExpenseDialog({
   const isControlled = controlledOpen !== undefined;
   const [internalOpen, setInternalOpen] = useState(false);
   const dialogOpen = isControlled ? controlledOpen : internalOpen;
-  const prevDialogOpen = useRef(false);
+  const [prevDialogOpen, setPrevDialogOpen] = useState(false);
 
   const setDialogOpen = useCallback(
     (next: boolean) => {
@@ -150,15 +150,17 @@ export function AddExpenseDialog({
     setFieldErrors({});
   }, []);
 
-  useEffect(() => {
-    if (dialogOpen && !prevDialogOpen.current) {
+  // Reset the form when the dialog transitions from closed to open. Adjusting
+  // state during render (instead of in an effect) avoids a cascading re-render.
+  if (dialogOpen !== prevDialogOpen) {
+    setPrevDialogOpen(dialogOpen);
+    if (dialogOpen) {
       reset();
       if (initialParticipants?.length) {
         setParticipants(initialParticipants);
       }
     }
-    prevDialogOpen.current = dialogOpen;
-  }, [dialogOpen, reset, initialParticipants]);
+  }
 
   function pruneAmounts(
     users: User[],
