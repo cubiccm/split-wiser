@@ -1,8 +1,3 @@
----
-description: Project overview, tech stack, and conventions for Split Wiser
-alwaysApply: true
----
-
 # Split Wiser
 
 A web app for splitting expenses between friends. Users create groups, add expenses, and the app calculates who owes whom — minimizing the total number of transactions needed to settle up.
@@ -74,6 +69,7 @@ drizzle.config.ts
 ## Commands
 
 - `pnpm dev` — start dev server
+- `pnpm dev:local` — start dev server with local SQLite and auth bypass
 - `pnpm build` — production build
 - `pnpm lint` — run ESLint
 - `pnpm format` — format all files with Prettier
@@ -81,3 +77,15 @@ drizzle.config.ts
 - `pnpm db:generate` — generate migration from schema changes
 - `pnpm db:migrate` — apply pending migrations
 - `pnpm db:studio` — open Drizzle Studio (database browser)
+
+## Keep Project Rule Updated
+
+After any major change to the codebase, update `CLAUDE.md` to reflect it. This includes but is not limited to:
+
+- Adding, removing, or upgrading a core dependency or framework
+- Changing the tech stack (e.g. swapping the database, ORM, styling solution, or UI library)
+- Altering the project structure (new top-level directories, moved files)
+- Adding or renaming CLI commands / scripts in `package.json`
+- Changing conventions (naming, import style, component patterns)
+
+Keep the rule file concise and accurate — it is the single source of truth the AI reads on every conversation.
